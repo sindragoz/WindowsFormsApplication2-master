@@ -71,10 +71,6 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\ButtonView\ButtonView.csproj">
-      <Project>{857d992c-d694-49e2-b9d5-91ebefa58d34}</Project>
-      <Name>ButtonView</Name>
-    </ProjectReference>
     <ProjectReference Include="..\ElementBaseView\ElementBaseView.csproj">
       <Project>{81DB916B-BE82-44A3-9712-D46E996B6E7E}</Project>
       <Name>ElementBaseView</Name>
@@ -85,7 +81,7 @@
       <DependentUpon>PlayBtn.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Resource1.resx">
-      <Generator>ResXFileCodeGenerator</Generator>
+      <Generator>PublicResXFileCodeGenerator</Generator>
       <LastGenOutput>Resource1.Designer.cs</LastGenOutput>
     </EmbeddedResource>
   </ItemGroup>

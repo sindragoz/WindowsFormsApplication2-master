@@ -48,7 +48,6 @@
     <Compile Include="BaseElement.cs">
       <SubType>Component</SubType>
     </Compile>
-    <Compile Include="CEditor.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

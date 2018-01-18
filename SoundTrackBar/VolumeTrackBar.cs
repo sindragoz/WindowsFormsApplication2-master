@@ -7,16 +7,23 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using Controller;
+
 
 namespace SoundTrackBar
 {
-   public class VolumeTrackBar:BaseElement
+    public class VolumeTrackBar : BaseElement
     {
-        private int value = 0;
+        private float value = 0;
         private int min = 0;
-        private int max = 100;
+        private int max = 1;
         private float newValue = 0;
-
+        private EventHandler<ValueEventArgs> onValueChanged;
+        public event EventHandler<ValueEventArgs> OnValueChanged
+        {
+            add { onValueChanged += value; }
+            remove { onValueChanged -= value; }
+        }
         private bool dragNow = false;
         int sections = 8;
         //private Image img = Image.FromFile("C:\\Users\\User\\Downloads\\color-ring.png");
@@ -25,7 +32,7 @@ namespace SoundTrackBar
         {
             get { return newValue; }
         }
-       
+
 
         public int MinimumValue
         {
@@ -40,7 +47,7 @@ namespace SoundTrackBar
                 max = value;
             }
         }
-        public int Value
+        public float Value
         {
             get { return value; }
             set
@@ -51,9 +58,10 @@ namespace SoundTrackBar
                 }
             }
         }
-        public VolumeTrackBar()
+        Controller.Controller cont;
+        public VolumeTrackBar(Controller.Controller cont)
         {
-
+            this.cont = cont;
             DoubleBuffered = true;
         }
         int cnt = 0;
@@ -61,28 +69,22 @@ namespace SoundTrackBar
 
         protected override void OnPaint(PaintEventArgs e)
         {
-            
+
             base.OnPaint(e);
             float brick_h = (Height) / sections;
-            
-            int interval = 5;
-            for (int i = 0; i < sections; i++) {
-                e.Graphics.FillRectangle(new SolidBrush(Color.Gray),0,Height-i*brick_h-interval,Width,brick_h-interval);
-            }
-            for (int i = 0; i <(Height - NewValue)/brick_h&&i<sections ; i++)
-            {if ((Height - NewValue) / brick_h < 0.25)
-                    break;
-                e.Graphics.FillRectangle(new SolidBrush(Theme), 0,Height- i * brick_h - interval+1, Width, brick_h - interval);
-            }
-            //e.Graphics.FillRectangle(new LinearGradientBrush(new PointF(newValue - 100, ClientRectangle.Height / 3), new PointF(NewValue, ClientRectangle.Height / 3), Color.Transparent, clr2), NewValue - 99, ClientRectangle.Height / 3, 100, ClientRectangle.Height / 3);
-            ////  e.Graphics.FillRectangle(new LinearGradientBrush(new PointF(glow_pos_x,0), new PointF(newValue, ClientRectangle.Height), Color.White, Color.Transparent), glow_pos_x, 0, newValue-glow_pos_x, ClientRectangle.Height);
 
-            //e.Graphics.FillRectangle(new LinearGradientBrush(new PointF(glow_pos_x - 80, ClientRectangle.Height / 3), new PointF(glow_pos_x, ClientRectangle.Height / 3), Color.Transparent, Color.White), glow_pos_x - 79, ClientRectangle.Height / 3, 80, ClientRectangle.Height / 3);
-            //e.Graphics.FillRectangle(new SolidBrush(clr1), NewValue - 1, Height / 6, 5, 4 * Height / 6);
-            //
-            // e.Graphics.FillRectangle(new LinearGradientBrush(new PointF(glow_pos_x, 0), new PointF(NewValue, ClientRectangle.Height), Color.White, Color.Transparent), glow_pos_x,0,ClientRectangle.Width, ClientRectangle.Height);
-            // e.Graphics.DrawImage(img, newValue-ClientRectangle.Height/2, 0, ClientRectangle.Height, ClientRectangle.Height);
-            // e.Graphics.Flush();
+            int interval = 5;
+            for (int i = 0; i < sections; i++)
+            {
+                e.Graphics.FillRectangle(new SolidBrush(Color.Gray), 0, Height - i * brick_h - interval, Width, brick_h - interval);
+            }
+            for (int i = 0; i < (Height - NewValue) / brick_h && i < sections; i++)
+            {
+                if ((Height - NewValue) / brick_h < 0.25)
+                    break;
+                e.Graphics.FillRectangle(new SolidBrush(Theme), 0, Height - i * brick_h - interval + 1, Width, brick_h - interval);
+            }
+
         }
         protected override void OnMouseUp(MouseEventArgs e)
         {
@@ -112,19 +114,23 @@ namespace SoundTrackBar
 
             if (ClientRectangle.Contains(point))
             {
-                // this.Width += 20;
-                //    this.Width += point.X;
                 newValue = point.Y;
-                float value = ((float)newValue / (float)ClientRectangle.Height) * (max - min);
-                this.value = (int)value;
-                //  clr = Color.Blue;
+                float value = ((float)newValue / (float)ClientRectangle.Height);
+                this.value = value;
                 Invalidate();
-                //     OptimizedInvalidate((int)value,(int)newValue);
-
-
+                cont.volume(value);
+            }
+        }
+        protected virtual void ValueChanged(EventArgs e)
+        {
+            if (onValueChanged != null)
+            {
+                ValueEventArgs ve = new ValueEventArgs((int)value);
+                onValueChanged.Invoke(this, ve);
             }
         }
 
     }
 }
+
 

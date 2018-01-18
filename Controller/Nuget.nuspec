@@ -1,0 +1,17 @@
+&lt;?xml version="1.0" encoding="utf-8"?&gt;
+&lt;package&gt;
+  &lt;metadata&gt;
+    &lt;id&gt;WBR.ArgParser&lt;/id&gt;
+    &lt;version&gt;1.0.0&lt;/version&gt;
+    &lt;title&gt;Argument Parser library&lt;/title&gt;
+    &lt;authors&gt;Violet Tape&lt;/authors&gt;
+    &lt;description&gt;Easy to use library for parsing app arguments.&lt;/description&gt;
+    &lt;language&gt;en-US&lt;/language&gt;
+    &lt;projectUrl&gt;http://violet-tape.net&lt;/projectUrl&gt;
+    &lt;iconUrl&gt;http://violet-tape.net/images/commandprompt.png&lt;/iconUrl&gt;
+    &lt;requireLicenseAcceptance&gt;false&lt;/requireLicenseAcceptance&gt;
+  &lt;/metadata&gt;
+  &lt;files&gt;
+    &lt;file src="bin\Release\WBR.ArgParser.dll" target="lib" /&gt;
+  &lt;/files&gt;
+&lt;/package&gt;
