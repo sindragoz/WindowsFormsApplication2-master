@@ -24,7 +24,7 @@ namespace buttonPlay
 
         public void setStatementIcon(bool minimized)
         {
-            pic = minimized ? Resource1.maximize : Resource1.minimize;
+            
             Invalidate();
         }
     }

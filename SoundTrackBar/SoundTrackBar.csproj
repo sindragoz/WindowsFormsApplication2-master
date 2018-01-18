@@ -54,6 +54,7 @@
     <Compile Include="RoundedTrackBar.cs">
       <SubType>Component</SubType>
     </Compile>
+    <Compile Include="ValueEventArgs.cs" />
     <Compile Include="VolumeTrackBar.cs">
       <SubType>Component</SubType>
     </Compile>
@@ -68,6 +69,10 @@
     <None Include="Resources\Rounded_t_bar.png" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Controller\Controller.csproj">
+      <Project>{6a972d35-b13e-4779-ab56-ca3484081348}</Project>
+      <Name>Controller</Name>
+    </ProjectReference>
     <ProjectReference Include="..\ElementBaseView\ElementBaseView.csproj">
       <Project>{81DB916B-BE82-44A3-9712-D46E996B6E7E}</Project>
       <Name>ElementBaseView</Name>

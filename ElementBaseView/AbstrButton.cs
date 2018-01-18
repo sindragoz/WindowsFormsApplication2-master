@@ -12,7 +12,11 @@ namespace ElementBaseView
     {
 
         Color theme=Color.Red;
+        
         protected Image pic;
+        public Image Picture {
+            set { pic = value; }
+        }
         public Color Theme
         {
             get { return theme; }
@@ -21,15 +25,27 @@ namespace ElementBaseView
                 theme = value;
             }
         }
+        Color elementColor = Color.LimeGreen;
+        public Color ElementColor
+        {
+            get { return elementColor; }
+            set
+            {
+                elementColor = value;
+            }
+        }
+        private bool useTheme = true;
+        public bool UseTheme {
+        get { return useTheme; }
+            set { useTheme = value; }
+        }
         public AbstrButton() {
            
         }
         protected override void OnPaint(PaintEventArgs pevent)
         {
             DoubleBuffered = true;
-            base.OnPaint(pevent);
-            if (pic!=null)
-            pevent.Graphics.DrawImage(pic, 0, 0, Width, Height);
+            base.OnPaint(pevent);            
         }
         private int glow=60;
         private Size prev_size;

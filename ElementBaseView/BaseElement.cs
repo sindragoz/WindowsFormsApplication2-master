@@ -13,7 +13,7 @@ namespace ElementBaseView
 {
     public class BaseElement:Control
     {
-        Color theme;
+        Color theme=Color.Green;
         public Color Theme
         {
             get { return theme; }
@@ -21,6 +21,21 @@ namespace ElementBaseView
             { theme = value;
                 Invalidate();
             }
+        }
+        Color elementColor = Color.LimeGreen;
+        public Color ElementColor
+        {
+            get { return elementColor; }
+            set
+            {
+                elementColor = value;
+            }
+        }
+        private bool useTheme = true;
+        public bool UseTheme
+        {
+            get { return useTheme; }
+            set { useTheme = value; }
         }
         protected override void OnPaint(PaintEventArgs e)
         {

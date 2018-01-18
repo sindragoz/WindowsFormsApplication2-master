@@ -45,6 +45,23 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="BasePlayer.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="Class1.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="CompEditPanel.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="ComponentLayerEditor.cs" />
+    <Compile Include="ComponentPositionEditor.cs" />
+    <Compile Include="ComponentStyleForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="ComponentStyleForm.Designer.cs">
+      <DependentUpon>ComponentStyleForm.cs</DependentUpon>
+    </Compile>
     <Compile Include="MusicPlayer.cs">
       <SubType>Component</SubType>
     </Compile>
@@ -55,9 +72,9 @@
       <Project>{14CC5EAC-963F-46AB-A590-F4111B1A528A}</Project>
       <Name>buttonPlay</Name>
     </ProjectReference>
-    <ProjectReference Include="..\ButtonView\ButtonView.csproj">
-      <Project>{857D992C-D694-49E2-B9D5-91EBEFA58D34}</Project>
-      <Name>ButtonView</Name>
+    <ProjectReference Include="..\Controller\Controller.csproj">
+      <Project>{6A972D35-B13E-4779-AB56-CA3484081348}</Project>
+      <Name>Controller</Name>
     </ProjectReference>
     <ProjectReference Include="..\ElementBaseView\ElementBaseView.csproj">
       <Project>{81DB916B-BE82-44A3-9712-D46E996B6E7E}</Project>
@@ -77,6 +94,9 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <EmbeddedResource Include="ComponentStyleForm.resx">
+      <DependentUpon>ComponentStyleForm.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="MusicPlayer.resx">
       <DependentUpon>MusicPlayer.cs</DependentUpon>
     </EmbeddedResource>

@@ -1,4 +1,5 @@
 ﻿using ElementBaseView;
+using NAudio.CoreAudioApi;
 using NAudio.Dsp;
 using NAudio.Wave;
 using System;
@@ -7,6 +8,7 @@ using System.ComponentModel;
 using System.Data;
 using System.Diagnostics;
 using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -18,43 +20,147 @@ namespace SoundSpectrumVisualisation
     public class SoundSpectrum : BaseElement
     {
         private IWaveIn waveIn;
-        private static int fftLength = 64;
+
+        //MMDevice device;
+        private static int fftLength=4096;
+        float []spectre_peaks;
+
+        public enum SpectrumForm {Rect,Round};
+        private SpectrumForm spectrumF;
+        public SpectrumForm Form_of_Spectrum {
+        get { return spectrumF; }
+        set { spectrumF = value; }
+        }
+        private bool high_detalization = true;
+        public bool High_spectre_detalization
+        {
+            get { return high_detalization; }
+            set { high_detalization = value; }
+        }
+        private int glow_intencity = 150;
+        public int Glow_intencity{
+            get { return glow_intencity; }
+            set {if(value>=50&&value<=150)
+                glow_intencity = value; }
+            }
+        public int FFTlength {
+        get { return fftLength; }
+            set
+            {
+                if (IsPowerOfTwo(value))
+                {
+                    
+                   // if(spectrumF==SpectrumForm.Rect)
+                  //      if(value<=128)
+                 //           fftLength = value;
+                //    if (spectrumF == SpectrumForm.Round)
+                 //       if (value <= 128&&value>=32)
+                            fftLength = value;
+                }
+
+            }
+            }
+        public int MaxBricks {
+            get { return maxbricks; }
+            set {if(value>=20&&value<=60) maxbricks = value; }
+        }
         float[] h_sectors;
         float h_s_size;
         Timer catch_harmonics;
-        Timer slowly_change;  
-      //  int zero_sectors = fftLength;
-        public float[] Y {
-        get { return y; } }
+        Timer slowly_change;
+        //  int zero_sectors = fftLength;
+        //public float[] Y {
+        //get { return y; } }
         public float []last_y;
-        int maxbricks;
+        int maxbricks=40;
         public float bricks_h=15;
-        private SampleAggregator sampleAggregator = new SampleAggregator(fftLength);
+        private int freq_shift=64;
+        private float []freq_range;
+        private SampleAggregator sampleAggregator;
         public SoundSpectrum()
         {
             this.DoubleBuffered = true;
-            maxbricks =40;
-           // delta = new float[zero_sectors];   
-            y = new float[fftLength];
-            last_y = new float[fftLength ];
+            
+            MMDeviceEnumerator me = new MMDeviceEnumerator();
+            //device = me.EnumerateAudioEndPoints(DataFlow.All, DeviceState.Active)[1];
+            // delta = new float[zero_sectors];
             catch_harmonics = new Timer() { Interval = 50 };
-            slowly_change = new Timer() { Interval = 5 };
-            slowly_change.Tick += Slowly_change_Tick;
-            catch_harmonics.Tick += timer1_Tick;          
-            sampleAggregator.FftCalculated += new EventHandler<FftEventArgs>(FftCalculated);
-            sampleAggregator.PerformFFT = true;
+            catch_harmonics.Tick += timer1_Tick; 
             waveIn = new WasapiLoopbackCapture();
             waveIn.DataAvailable += OnDataAvailable;
-            setdelta = new bool[fftLength];
-            
-            
+
+
+
             this.DoubleBuffered = true;
 
         }
+        private int freq_sort=5;
+        private void set_freq_range() {
+         //   fr += "||" + freq_shift / freq_sort + "||";
+            for (int i = 0; i <freq_sort; i++) {
+                for (int k = i * freq_shift / freq_sort, d = 0; k <1+ i * freq_shift / freq_sort + freq_shift / freq_sort; k++, d++)
+                {
+                    if (freq_range[k] == 0)
+                    {
+                        if (i == 0)
+                            freq_range[k] = 20 + d * 140 / (freq_shift / freq_sort);
+                        if (i == 1)
+                            freq_range[k] = 140 + d * 400 / (freq_shift / freq_sort);
+                        if (i == 2)
+                            freq_range[k] = 400 + d * 2600 / (freq_shift / freq_sort);
+                        if (i == 3)
+                            freq_range[k] = 2600 + d * 5200 / (freq_shift / freq_sort);
+                        if (i >= 4)
+                            freq_range[k] = 5200 + d * 22050 / (freq_shift / freq_sort);
+
+                        fr += "[" + k + "]" + freq_range[k] + "\n";
+                    }
+                }
+                
+            //        fr += "\n";
+             
+               
+            }
+            gnomeSort(freq_range);
+        }
+        void gnomeSort(float[] a)
+        {
+                 int i = 1;
+                while (i < a.Length)
+            {
+                        if (i == 0 || a[i - 1] <= a[i])
+                                 i++;
+                         else {
+                                 float temp = a[i];
+                                 a[i] = a[i - 1];
+                               a[i - 1] = temp;
+                                i--;
+                            }
+                     }
+             }
         public void StartVisualization() {
+
+            fftLength = high_detalization ? 4096 : 2048;
+            freq_shift = high_detalization ? 64 : 32;
+            setdelta = new bool[fftLength];
+            freq_range = new float[freq_shift];
+            y = new float[fftLength];
+            last_y = new float[fftLength];
+            delta = new float[freq_shift];
+            spectre_peaks = new float[freq_shift];
+            sampleAggregator = new SampleAggregator(fftLength);
+            sampleAggregator.FftCalculated += new EventHandler<FftEventArgs>(FftCalculated);
+            sampleAggregator.PerformFFT = true;
+            last_peaks = new float[freq_shift];
+            set_freq_range();
             waveIn.StartRecording();
-            catch_harmonics.Start();
-            slowly_change.Start();
+          //  for (int i = 0; i < slowly_change.Length; i++)
+          //  {
+                slowly_change = new Timer() { Interval = 2 };
+                slowly_change.Tick += Slowly_change_Tick;
+          //  }
+            // catch_harmonics.Start();
+              slowly_change.Start();
         }
         public void StopVisualization() {
             waveIn.StopRecording();
@@ -65,40 +171,39 @@ namespace SoundSpectrumVisualisation
                 setdelta[i] = false;
             }
         }
-        float delta;
-        float mindelta = 5;
+        bool IsPowerOfTwo(int x)
+        {
+            return (x & (x - 1)) == 0;
+        }
+        float []delta;
         bool[] setdelta;
         int change_steps = 0;
         float bricks = 0;
         private void Slowly_change_Tick(object sender, EventArgs e)
         {
-            for (int i = 0; i < fftLength; i++)
+            for (int i = 0; i < freq_shift; i++)
             {
-                 // if (!setdelta[i])
-                   //{
-                delta = (y[i] - last_y[i])/ 10;
-               
-               // if (Math.Abs(y[i] - last_y[i]) <0.05)
+              //   if (!setdelta[i])
                // {
-               //        delta += (delta / Math.Abs(delta))*mindelta;
-              // }
-               //        setdelta[i] = true;
+                delta[i] = (spectre_peaks[i] - last_peaks[i]) / 3;
+             //          setdelta[i] = true;
 
-                  //  }
-                last_y[i] += delta;
+             //  }
+                last_peaks[i] += delta[i];
+            //    if(need_invalidate)
                 Invalidate();
             }
-            change_steps++;
-            if (change_steps == 9)
-            {
-                slowly_ch_started = false;
-           //     nullifyDelta();
-                change_steps = 0;
-               // slowly_change.Stop();
+            //change_steps++;
+      //      if (change_steps >= 4)
+        //    {
+          //      slowly_ch_started = false;
+          //      nullifyDelta();
+        //        change_steps = 0;
+             //   slowly_change.Stop();
 
-            }
+       //     }
         }
-        //RectangleF []bricks_rects;
+
 
         float min = 2;
         void OnDataAvailable(object sender, WaveInEventArgs e)
@@ -121,54 +226,114 @@ namespace SoundSpectrumVisualisation
             }
         }
         Complex[] c;
+        float freq;
+        public string freq_str = "";
+        bool need_invalidate = false;
         void FftCalculated(object sender, FftEventArgs e)
         {
             c = e.Result;
-            //e.Result;
-            // Do something with e.result!
-        }
-        float[] y;
-        bool slowly_ch_started=false;
-        private void timer1_Tick(object sender, EventArgs e)
-        {
-            
-            for (int i = 0, j = 0; i < fftLength; i++, j++)
-            {
-                
-                if (i == fftLength )
-                    i += fftLength ;
-               
+
+            freq_str = "";
                 if (c != null)
                 {
+                for(int i=0;i<spectre_peaks.Length;i++)
+                    last_peaks[i] = spectre_peaks[i];
+                nullify_spectre_peaks();
+                    for (int j = 0; j < fftLength / 2; j++)
+                    {
+                        //if (!slowly_ch_started)
 
-
-                      if (!slowly_ch_started)
+                        //{
+                        //   // last_y[j] = y[j];
+                        //    slowly_change.Start();
+                        //    slowly_ch_started = true;
+                        //}
+                        y[j] = (float)((Math.Sqrt(c[j].X * c[j].X + c[j].Y * c[j].Y)));
+                        freq = j * 44100f / fftLength;
+                    freq_str += freq + "\n";
+                    set_spectre_peak(freq, y[j]);
                     
-                          {
-                        last_y[j] = y[j];
-                      //  slowly_change.Start();
-                        slowly_ch_started = true;
-                           }
-                    y[j] = ((Math.Abs(c[i].X) * Height/0.1 < Height)? (float)(Math.Abs(c[i].X) * Height / 0.1) : Height - 1);
-                    if (y[j] < 4)
-                        y[j] *=10;
-                    if (y[j] < 1)
-                        y[j] *= 100;
-
-                    //     Invalidate();
+                    Invalidate();
                 }
+             //   need_invalidate = true;
+                    Invalidate();
+
+
+            }
+            
+           
+           
+        }
+        float[] y;
+        float[] last_peaks;
+     //   bool slowly_ch_started=false;
+       public string fr = "";
+        private void nullify_spectre_peaks() {
+          //  need_invalidate = false;
+            for (int i = 0; i < freq_shift/2; i++)
+                spectre_peaks[i] = 0;
+                    }
+        private void timer1_Tick(object sender, EventArgs e)
+        {
+            //freq_str = "";
+            //nullify_spectre_peaks();
+            //if (c != null)
+            //{
+            //    last_peaks = spectre_peaks;
+            //    for (int j = 0; j < fftLength/2; j++)
+            //    {
+            //        //if (!slowly_ch_started)
+
+            //        //{
+            //        //   // last_y[j] = y[j];
+            //        //    slowly_change.Start();
+            //        //    slowly_ch_started = true;
+            //        //}
+            //        y[j] = (float)((Math.Sqrt(c[j].X * c[j].X + c[j].Y * c[j].Y)));
+            //        freq = j * 44100f / fftLength;
+                    
+            //        set_spectre_peak(freq,y[j]);                  
+            //    }
+            //    // Invalidate();
+            //    if (!slowly_ch_started)
+
+            //    {
+            //        // last_y[j] = y[j];
+            //        slowly_change.Start();
+            //        slowly_ch_started = true;
+            //    }
+            //}
+
+            
+
+        }
+        private void set_spectre_peak(float freq, float mag) {
+            for (int i = 1; i <freq_shift; i++)
+            {
+
+                if (freq >= freq_range[i - 1] && freq <= freq_range[i]) {
+                //    freq_str += "[" + (i - 1) + "]" + freq_range[i - 1] + "<=" + freq + "<=" + freq_range[i] + "[" + i + "]\n";
+                    if (spectre_peaks[i] <= (mag))
+                       {
+                    
+                        spectre_peaks[i] += (mag);
+                        
+                        
+                        return;
+                   }
+                }
+
             }
         }
-            
-            
-            
-        
-        //private float findmaxHarmonic() {
-        //    float max = 0;
-        //    for (int i = 0; i < fftLength / 2; i++)
-        //    {
-        //    }
-        //}
+        private float maxY(float[] y)
+        {
+            float max = y[0];
+            for (int i = 0; i < y.Length; i++)
+                if (y[i] > max)
+                    y[i] = max;
+            return max;
+
+        }
         public float H_S_Size {
         get { return h_s_size;
             }
@@ -187,36 +352,175 @@ namespace SoundSpectrumVisualisation
         protected override void OnPaint(PaintEventArgs e)
         {
             base.OnPaint(e);
+            if(last_y!=null)
+            if (last_y.Length != 0) 
+            e = spectrumF==SpectrumForm.Round?roundSpectrum(e):rectSpectrum(e);  
+        }
+
+        
+        private PaintEventArgs roundSpectrum(PaintEventArgs e) {
+           
+            Pen p=new Pen(Theme, 3);
+            Color glow;
+            Color theme_grad=Color.Transparent;
+            int R=Theme.R;
+            int G = Theme.G;
+            int B = Theme.B;
+            float low_freq = 0;
+            int grad_shift =(int)( delta_color * 4);
+            for (int i = 0; i < freq_shift / 5; i++)
+            {
+                low_freq += last_peaks[i]*7000;
+            }
+            if (R - glow_intencity >= 0)
+                R -= glow_intencity;
+            else R = 0;
+            if (G - glow_intencity >= 0)
+                G -= glow_intencity;
+            else G = 0;
+            if (B - glow_intencity >= 0)
+                B -= glow_intencity;
+            else B = 0;
+            float glow_amplitude=0;
+            if (low_freq != 0 && low_freq >= 255)
+                glow_amplitude = 255.0f/ (low_freq);
+           
+            glow = Color.FromArgb((int)(R+glow_amplitude*glow_intencity), (int)(G+glow_amplitude * glow_intencity), (int)(B+glow_amplitude * glow_intencity));
+
+            if (Theme.R >= Theme.G && Theme.R >= Theme.B)
+            {
+                theme_grad = Color.FromArgb(Theme.R, Theme.G + grad_shift <= 255 ? Theme.G + grad_shift : Theme.G - grad_shift, Theme.B);
+            }
+            if (Theme.G >= Theme.R && Theme.G >= Theme.B)
+            {
+                theme_grad = Color.FromArgb(Theme.R, Theme.G, Theme.B + grad_shift <= 255 ? Theme.B + grad_shift : Theme.B - grad_shift);
+            }
+            if (Theme.B >= Theme.R && Theme.B >= Theme.G)
+            {
+                theme_grad = Color.FromArgb(Theme.R, Theme.G + grad_shift <= 255 ? Theme.G + grad_shift : Theme.G - grad_shift, Theme.B);
+            }
+
+            LinearGradientBrush lgb = new LinearGradientBrush(new PointF(0, 0), new PointF(Width / 8, 0), glow, Color.Transparent);
+            LinearGradientBrush lgb_r = new LinearGradientBrush(new PointF(0, 0), new PointF(Width / 8, 0), Color.Transparent,glow);
+            float r = Height / 6+ low_freq/(1.25f*freq_shift/2);
+            float rr;
+            PointF[] gpoints = new PointF[freq_shift-4];
+
+            float x_centre;
+            float y_centre;
+            float x, y,x_rev,y_rev;
+            float angle = 0;
+            int j = 0;
+            e.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+            for (int i =2; i < freq_shift-2; i ++,angle+=360.0f/((float)freq_shift-4))
+            {
+                if (i <= freq_shift / 2-1)
+                    j = i;
+                else
+                    j = freq_shift - 2 - i;
+                x_centre = Width / 2 + r * Convert.ToSingle(Math.Cos(2 * Math.PI * (angle-85) / 360));
+                y_centre = Height / 2 + r * Convert.ToSingle(Math.Sin(2 * Math.PI * (angle-85) / 360));
+                
+                x = x_centre + (last_peaks[j]*7000/(3f)) * Convert.ToSingle(Math.Cos(2 * Math.PI * (angle-86) / 360))+1;
+                y = y_centre + (last_peaks[j]*7000 / 3f) * Convert.ToSingle(Math.Sin(2 * Math.PI * (angle-86) / 360))+1;
+
+                //x = x_centre + (last_y[i] / 2.5f >= Height / 2 - r ? r - 1 : last_y[i] / 2.5f) * Convert.ToSingle(Math.Cos(2 * Math.PI * angle / 360));
+                //y = y_centre + (last_y[i] / 2.5f >= r ? r - 1 : last_y[i] / 2.5f) * Convert.ToSingle(Math.Sin(2 * Math.PI * angle / 360));
+                try
+                {
+                    e.Graphics.DrawLine(new Pen(new LinearGradientBrush(new PointF(x_centre, y_centre),new PointF( x, y),Theme,theme_grad),3), x_centre, y_centre, x, y);
+                }
+                catch { }
+                rr = r - 2*(last_peaks[j] / (10f)) - Height /12;
+                x_centre = Width / 2 + rr * Convert.ToSingle(Math.Cos(2 * Math.PI * (angle - 85) / 360));
+                y_centre = Height / 2 + rr * Convert.ToSingle(Math.Sin(2 * Math.PI * (angle - 85) / 360));
+
+                x = x_centre + (last_peaks[j]*4000 / (10f)) * Convert.ToSingle(Math.Cos(2 * Math.PI * (angle - 85) / 360));
+                y = y_centre + (last_peaks[j]*4000 / (10f)) * Convert.ToSingle(Math.Sin(2 * Math.PI * (angle - 85) / 360));
+                gpoints[i-2] = new PointF(x, y);
+                
+               
+
+                // e.Graphics.DrawLine(new Pen(Color.Black, 3), x_centre, y_centre, x, y);
+
+
+            }
+            e.Graphics.DrawPolygon(new Pen(glow,2),gpoints);
+
+            e.Graphics.FillRectangle(lgb, 0,0,Width/8-1,Height);
+            e.Graphics.FillRectangle(lgb_r, 7*Width/8, 0, Width / 8 -1, Height);
+            return e;
+        }
+        //private float detectFreq() {
+        //    float binSize = 44100 / fftLength;
+        //    int minBin = (int)(100.0 / binSize);
+        //    int maxBin = (int)(300.0 / binSize);
+        //    float maxIntensity = 0f;
+        //    int maxBinIndex = 0;
+        //    if (c != null)
+        //    {
+        //        for (int bin = minBin; bin <= maxBin; bin++)
+        //        {
+        //            float real = c[bin].X;
+        //            float im = c[bin].Y;
+        //            float intensity = real * real+ im*im;
+        //            if (intensity > maxIntensity)
+        //            {
+        //                maxIntensity = intensity;
+        //                maxBinIndex = bin;
+        //            }
+        //        }
+        //    }
+        //    return binSize * maxBinIndex;
+        //}
+        private int det = 64;
+        private float sum=0;
+        private PaintEventArgs rectSpectrum(PaintEventArgs e) {
+            //  string str = "";
+            //     SolidBrush br = new SolidBrush(Theme);
+            //   for (int i = 0; i <freq_shift/2;i++) {
+            //        e.Graphics.FillRectangle(br,i*Width/(freq_shift/2),Height- spectre_peaks[i]*500-5,Width/(freq_shift/2),Height);
+            //   str += " " + last_peaks[i];
+            //     if (i % 10 == 0)
+            //         str += "\n";
+
+
+            //  }
+            //    e.Graphics.DrawString(str, new Font("Arial", 7), br, 1, 1);
+            //  e.Graphics.DrawString(str, new System.Drawing.Font("Arial Black", 6, FontStyle.Regular, GraphicsUnit.Point), new SolidBrush(Color.Red), new Point(0, 0));
             bricks_h = Height / maxbricks;
             bricks_h = bricks_h > 1 ? bricks_h : 1;
-            h_sectors = new float[fftLength];
-            h_s_size = Width/(float)(fftLength);
+            h_sectors = new float[freq_shift / 2];
+            h_s_size = Width / (float)(freq_shift / 2);
+
             SolidBrush br = new SolidBrush(Theme);
-            
+            // string s = "" + detectFreq();
+            // e.Graphics.DrawString(s, new System.Drawing.Font("Arial", 14, FontStyle.Regular, GraphicsUnit.Point), new SolidBrush(Color.Red), new Point(20, 20));
             SolidBrush bgbr = new SolidBrush(BackColor);
             pref_R = br.Color.R;
             pref_G = br.Color.G;
             pref_B = br.Color.B;
-            for (int i = 0; i < fftLength; i++)
+            for (int i = 0; i < freq_shift / 2; i++)
             {
                 h_sectors[i] = (float)i * h_s_size;
-                e.Graphics.FillRectangle(br, h_sectors[i],Height-bricks_h, h_s_size, bricks_h);
+                e.Graphics.FillRectangle(br, h_sectors[i], Height - bricks_h, h_s_size, bricks_h);
 
             }
             //   h_s_rects = new RectangleF[fftLength];
-            
-            
-            for (int i =0; i <fftLength ; i++)
+
+
+            for (int i = 2; i < freq_shift / 2; i++)
             {
-                addbrick=false;
-                bricks = last_y[i] / bricks_h;
-                br.Color = Color.FromArgb(pref_R,pref_G,pref_B);
-                for (int k = 1; k <= bricks;k++) {
-                    if (y[i] - last_y[i] > 0.05 && y[i] - last_y[i] < 0.25&&!addbrick)
-                    {
-                        bricks++;
+                addbrick = false;
+                bricks = last_peaks[i]*3200.0f / bricks_h;
+                br.Color = Color.FromArgb(pref_R, pref_G, pref_B);
+                for (int k = 1; k <= bricks; k++)
+                {
+                 //   if ( && !addbrick)
+                 //   {
+                //        bricks++;
                         addbrick = true;
-                    }
+                //    }
                     if (br.Color.R >= br.Color.G && br.Color.R >= br.Color.B)
                     {
                         br.Color = Color.FromArgb(br.Color.R, br.Color.G + delta_color <= 255 ? br.Color.G + delta_color : br.Color.G - delta_color, br.Color.B);
@@ -230,23 +534,23 @@ namespace SoundSpectrumVisualisation
                         br.Color = Color.FromArgb(br.Color.R, br.Color.G + delta_color <= 255 ? br.Color.G + delta_color : br.Color.G - delta_color, br.Color.B);
                     }
                     // br.Color = Color.FromArgb(br.Color.R - delta_color > 0 ? br.Color.R - delta_color : br.Color.R+ delta_color, br.Color.G - delta_color > 0 ? br.Color.G - delta_color : br.Color.G+ delta_color, br.Color.B - delta_color > 0 ? br.Color.B - delta_color : br.Color.B+ delta_color);
-                    e.Graphics.FillRectangle(br, h_sectors[i],Height- k * bricks_h, h_s_size, bricks_h);             
+                    e.Graphics.FillRectangle(br, h_sectors[i], Height - k * bricks_h, h_s_size, bricks_h);
                 }
 
                 //h_s_rects[i] = new RectangleF(h_sectors[i],0,h_s_size-1,Height);
                 //   e.Graphics.FillRectangle(br, h_sectors[i], 0, h_s_size, last_y[i]);
-                if(bricks_h>1)
-                for (int k=0;k<maxbricks;k++)
-                e.Graphics.FillRectangle(bgbr, 0, Height - bricks_h * k - 1, Width, 1);
-                e.Graphics.FillRectangle(bgbr, h_sectors[i],0,1,Height);
-                
+                if (bricks_h > 1)
+                    for (int k = 0; k < maxbricks; k++)
+                        e.Graphics.FillRectangle(bgbr, 0, Height - bricks_h * k - 1, Width, 1);
+                e.Graphics.FillRectangle(bgbr, h_sectors[i], 0, 1, Height);
+
                 // e.Graphics.DrawLine(p, 0, 0, Width, (float)(Height * Math.Sin(i * 360.0 / fftLength)));
 
             }
-            
-            
-            
+            return e;
+
         }
+
     }
 }
 
